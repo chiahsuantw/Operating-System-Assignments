@@ -9,13 +9,6 @@
 #include <linux/sched.h>
 #include <linux/utsname.h>
 
-#define KFETCH_RELEASE (1 << 0)
-#define KFETCH_NUM_CPUS (1 << 1)
-#define KFETCH_CPU_MODEL (1 << 2)
-#define KFETCH_MEM (1 << 3)
-#define KFETCH_UPTIME (1 << 4)
-#define KFETCH_NUM_PROCS (1 << 5)
-
 #define DEVICE_NAME "kfetch"
 #define BUF_SIZE 1024
 
@@ -26,6 +19,15 @@ struct kfetch_dev {
   struct device *device;
 } kfetch;
 
+// Information mask
+enum {
+  KFETCH_RELEASE = (1 << 0),
+  KFETCH_NUM_CPUS = (1 << 1),
+  KFETCH_CPU_MODEL = (1 << 2),
+  KFETCH_MEM = (1 << 3),
+  KFETCH_UPTIME = (1 << 4),
+  KFETCH_NUM_PROCS = (1 << 5),
+};
 static int info_mask = -1;
 
 // A lock to prevent multiple access to the device
@@ -52,21 +54,20 @@ static ssize_t kfetch_read(struct file *file, char __user *buffer,
                            size_t length, loff_t *offset) {
   // Fetch and format information
   struct sys_info {
-    char *hostname;
-    char *divider;
+    char hostname[64];
+    char divider[64];
     char kernel[64];
     char cpu[64];
     char cpus[64];
     char mem[64];
     char procs[64];
     char uptime[64];
-  } info;
+  } info = {0};
 
   // Hostname
-  info.hostname = utsname()->nodename;
+  sprintf(info.hostname, "%s", utsname()->nodename);
 
   // Divider
-  info.divider = kcalloc(strlen(info.hostname) + 1, sizeof(char), GFP_KERNEL);
   memset(info.divider, '-', strlen(info.hostname));
 
   // Kernel release name
